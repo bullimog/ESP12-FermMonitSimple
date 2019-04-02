@@ -82,9 +82,9 @@ float shedCalibrate = 0.0;
 
 const int TARGET_EEPROM_POSN = 0;
 const int TOLERANCE_EEPROM_POSN = 4;
-const int WORT_CALIB_EEPROM_POSN = 8;
-const int FRIDGE_CALIB_EEPROM_POSN = 12;
-const int SHED_CALIB_EEPROM_POSN = 16;
+const int WORT_CALIB_EEPROM_POSN = 12;
+const int FRIDGE_CALIB_EEPROM_POSN = 16;
+const int SHED_CALIB_EEPROM_POSN = 20;
 
 
 ESP8266WebServer server(80);
@@ -97,7 +97,7 @@ void setup(void)
   lcd.print("Starting...");
   
   delay(1000);
-  Serial.begin(115200);  // Serial connection from ESP-01 via 3.3v console cable
+  Serial.begin(115200);
   Serial.print("\n\r \n\r Started...");
 
   // Connect to WiFi network
@@ -321,9 +321,9 @@ void configure(){
     EEPROM.put(HIST_DURATION_EEPROM_POSN, historyDuration);
     EEPROM.put(TARGET_EEPROM_POSN, target);
     EEPROM.put(TOLERANCE_EEPROM_POSN, tolerance);
-    EEPROM.get(WORT_CALIB_EEPROM_POSN, wortCalibrate);
-    EEPROM.get(FRIDGE_CALIB_EEPROM_POSN, fridgeCalibrate);
-    EEPROM.get(SHED_CALIB_EEPROM_POSN, shedCalibrate);
+    EEPROM.put(WORT_CALIB_EEPROM_POSN, wortCalibrate);
+    EEPROM.put(FRIDGE_CALIB_EEPROM_POSN, fridgeCalibrate);
+    EEPROM.put(SHED_CALIB_EEPROM_POSN, shedCalibrate);
     EEPROM.commit();
   }
 
