@@ -89,6 +89,14 @@ const int SHED_CALIB_EEPROM_POSN = 20;
 
 ESP8266WebServer server(80);
 
+float getEepromFloat(int posn){
+  float val;
+  EEPROM.get(posn, val);
+  if(val == NAN){val = 0.0;}
+  return val;  
+}
+
+
 void setup(void)
 {
   lcd.begin(16,2);
@@ -123,26 +131,12 @@ void setup(void)
   unsigned long _historyDuration;
   EEPROM.get(HIST_DURATION_EEPROM_POSN, _historyDuration);
   if(_historyDuration != NAN){historyDuration = _historyDuration;}
-  
-  float _target;
-  EEPROM.get(TARGET_EEPROM_POSN, _target);
-  if(_target != NAN){target = _target;}
 
-  float _tolerance;
-  EEPROM.get(TOLERANCE_EEPROM_POSN, _tolerance);
-  if(_tolerance != NAN){tolerance = _tolerance;}
-
-  float _wortCalibrate;
-  EEPROM.get(WORT_CALIB_EEPROM_POSN, _wortCalibrate);
-  if(_wortCalibrate != NAN){wortCalibrate = _wortCalibrate;}
-
-  float _fridgeCalibrate;
-  EEPROM.get(FRIDGE_CALIB_EEPROM_POSN, _fridgeCalibrate);
-  if(_fridgeCalibrate != NAN){fridgeCalibrate = _fridgeCalibrate;}
-
-  float _shedCalibrate;
-  EEPROM.get(SHED_CALIB_EEPROM_POSN, _shedCalibrate);
-  if(_shedCalibrate != NAN){shedCalibrate = _shedCalibrate;}
+  target =          getEepromFloat(TARGET_EEPROM_POSN);
+  tolerance =       getEepromFloat(TOLERANCE_EEPROM_POSN);
+  wortCalibrate =   getEepromFloat(WORT_CALIB_EEPROM_POSN);
+  fridgeCalibrate = getEepromFloat(FRIDGE_CALIB_EEPROM_POSN);
+  shedCalibrate =   getEepromFloat(SHED_CALIB_EEPROM_POSN);
 
   server.begin();
   Serial.println("HTTP server started");
@@ -208,10 +202,6 @@ void monitorTemperature(){
       digitalWrite(heatingPin, LOW);
       heating = false;
     }
-//    if((wortTemp > target - tolerance) && (fridgeTemp > target + (tolerance*2)) {
-//      digitalWrite(heatingPin, LOW);
-//      heating = false;
-//    }
 
     if(cooling){
       heatCool[logIdx] = heatCool[logIdx] | COOL;
@@ -272,15 +262,15 @@ void configureForm(){
   str += (String) (historyDuration/1000);
   str += "\"> seconds<br><br>";
   
-  str += "Wort calibrate: <input type=\"number\" step=\"0.1\" maxlength=\"4\"  name=\"wort-calibrate\" value=\"";
+  str += "Wort calibrate: <input type=\"number\" step=\"0.01\" maxlength=\"4\"  name=\"wort-calibrate\" value=\"";
   str += (String) wortCalibrate;
   str += "\">&#176;C<br><br>";
   
-  str += "Fridge calibrate: <input type=\"number\" step=\"0.1\" maxlength=\"4\"  name=\"fridge-calibrate\" value=\"";
+  str += "Fridge calibrate: <input type=\"number\" step=\"0.01\" maxlength=\"4\"  name=\"fridge-calibrate\" value=\"";
   str += (String) fridgeCalibrate;
   str += "\">&#176;C<br><br>";
   
-  str += "Shed calibrate: <input type=\"number\" step=\"0.1\" maxlength=\"4\"  name=\"shed-calibrate\" value=\"";
+  str += "Shed calibrate: <input type=\"number\" step=\"0.01\" maxlength=\"4\"  name=\"shed-calibrate\" value=\"";
   str += (String) shedCalibrate;
   str += "\">&#176;C<br><br>";
   
@@ -305,9 +295,16 @@ void configure(){
 
   if(newTarget > 0.0){target = newTarget;}
   if(newTolerance > 0.0){tolerance = newTolerance;}
-  if(newWortCalibrate > 0.0){wortCalibrate = newWortCalibrate;}
-  if(newFridgeCalibrate > 0.0){fridgeCalibrate = newFridgeCalibrate;}
-  if(newShedCalibrate > 0.0){shedCalibrate = newShedCalibrate;}
+
+  if((newWortCalibrate > -50.0) && (newWortCalibrate < 50.0)){
+    wortCalibrate = newWortCalibrate;
+  }
+  if((newFridgeCalibrate > -50.0) && (newFridgeCalibrate < 50.0)){
+    fridgeCalibrate = newFridgeCalibrate;
+  }
+  if((newShedCalibrate > -50.0) && (newShedCalibrate < 50.0)){
+    shedCalibrate = newShedCalibrate;
+  }
 
   if(newHistoryDuration >= MIN_HISTORY_DURATION){
     historyDuration = newHistoryDuration;
@@ -316,7 +313,7 @@ void configure(){
   }
 
   if(eeprom.length() > 0){
-    Serial.println("EEMPROM was set");
+    Serial.println("EEPROM was set");
     //write config to eeprom
     EEPROM.put(HIST_DURATION_EEPROM_POSN, historyDuration);
     EEPROM.put(TARGET_EEPROM_POSN, target);
@@ -407,7 +404,8 @@ void handle_root() {
   str += "<br>Next reading in:";
   str += (String) (timeLeft/1000);
   str += " seconds<br><br>";
-  str += "<a href=\"hist\">History</a>";
+  str += "<a href=\"hist\">History</a> &nbsp; &nbsp;";
+  str += "<a href=\"configure\">Configure</a>";
   str += "</body></html>";
   server.send(200, "text/html", str);
 }
